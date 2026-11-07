@@ -1,0 +1,37 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.10+
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Run build script and tests
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
+    - name: Verify archive contents & checksums
+      run: |
+        cd dist
+        sha256sum -c SHA256SUMS
+        mkdir -p extracted_test
+        tar -xzf routed-model-0.1.0.tar.gz -C extracted_test
+        test -d extracted_test/routed-model/dashboard
+        test -f extracted_test/routed-model/plugin.yaml
+        echo "Tar extraction verified successfully."
+        unzip -q routed-model-0.1.0.zip -d extracted_test_zip
+        test -d extracted_test_zip/routed-model/dashboard
+        echo "Zip extraction verified successfully."

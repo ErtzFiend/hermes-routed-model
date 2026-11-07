@@ -1,0 +1,33 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build and test
+        run: |
+          chmod +x build.sh
+          ./build.sh
+      - name: Verify checksums
+        run: cd dist && sha256sum -c SHA256SUMS
+      - name: Create or update GitHub release with assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            dist/routed-model-*.tar.gz dist/routed-model-*.zip dist/SHA256SUMS \
+            --title "routed-model $GITHUB_REF_NAME" \
+            --notes "Ready-to-install plugin archives. Verify with: sha256sum -c SHA256SUMS" \
+          || gh release upload "$GITHUB_REF_NAME" --clobber \
+            dist/routed-model-*.tar.gz dist/routed-model-*.zip dist/SHA256SUMS

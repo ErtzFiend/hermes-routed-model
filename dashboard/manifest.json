@@ -1,0 +1,7 @@
+{
+  "name": "routed-model",
+  "label": "Routed Model",
+  "description": "Which model the active route (e.g. openrouter/auto) actually served.",
+  "version": "0.1.0",
+  "api": "plugin_api.py"
+}
