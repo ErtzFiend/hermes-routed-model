@@ -33,10 +33,10 @@ jobs:
         cd dist
         sha256sum -c SHA256SUMS
         mkdir -p extracted_test
-        tar -xzf routed-model-0.1.0.tar.gz -C extracted_test
+        tar -xzf routed-model-0.2.0.tar.gz -C extracted_test
         test -d extracted_test/routed-model/dashboard
         test -f extracted_test/routed-model/plugin.yaml
         echo "Tar extraction verified successfully."
-        unzip -q routed-model-0.1.0.zip -d extracted_test_zip
+        unzip -q routed-model-0.2.0.zip -d extracted_test_zip
         test -d extracted_test_zip/routed-model/dashboard
         echo "Zip extraction verified successfully."
