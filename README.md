@@ -1,36 +1,51 @@
 # Routed Model Plugin
 
-Expose which model the active route (e.g. `openrouter/auto`) actually served, for the Hermes Desktop status bar and dashboard.
+Expose which model a routed request actually served in the Hermes Desktop status bar and dashboard. Requested aliases are not proof of the underlying served model; missing provider metadata remains unknown.
 
-## Overview
+## Components
 
-When using fallback or auto-routed providers (`openrouter/auto`, alias routes, etc.), the requested model ID is often a placeholder. The upstream provider responds with the canonical model ID and serving provider (e.g. BaseTen, Nvidia).
+- `agent-hooks/routed-model.py`: captures `post_api_request` metadata into `$HERMES_HOME/state/routed-model/`.
+- `dashboard/plugin_api.py`: exposes `/api/plugins/routed-model/latest` and `/health`.
+- `desktop/plugin.js`: session-aware status-bar chip plus a settings page with polling controls, staleness threshold, captured-call details, and backend error reporting.
 
-This standalone plugin package provides three integrated layers:
-1. **Agent Shell Hook (`agent-hooks/routed-model.py`)**: Fired on `post_api_request`, recording per-call metadata into `$HERMES_HOME/state/routed-model/`.
-2. **Backend API (`dashboard/plugin_api.py`)**: FastAPI router serving `/api/plugins/routed-model/latest` and `/health`, computing model mix per session and recent history tails.
-3. **Desktop Status Bar Chip (`desktop/plugin.js`)**: Real-time status bar indicator (`⇄ auto → deepseek/deepseek-v4.1-flash`) with session-aware polling, stale checking, detail tooltips, and click-to-copy functionality.
+## Installation
 
-## Integration & Cutover Instructions
+1. Install the package into `$HERMES_HOME/plugins/routed-model/` using Hermes's plugin installer or a reviewed checkout.
+2. Copy `agent-hooks/routed-model.py` into `$HERMES_HOME/agent-hooks/routed-model.py` and make it executable on Unix.
+3. Configure the shell hook in `config.yaml`:
 
-1. **Install Plugin**: Place `routed-model` directory into `$HERMES_HOME/plugins/` (or install via archive).
-2. **Install Hook**: Copy `agent-hooks/routed-model.py` to `$HERMES_HOME/agent-hooks/routed-model.py` (make executable: `chmod +x`).
-3. **Configure Hook in `config.yaml`** (using the supported hooks schema):
    ```yaml
    hooks:
      post_api_request:
        - command: agent-hooks/routed-model.py
          timeout: 20
    ```
-4. **Dashboard & Desktop**: The FastAPI router is auto-discovered under plugins API mount, and Desktop loads `desktop/plugin.js` from plugins root.
 
-## SDK Compatibility & Limits
+4. Enable the plugin and start a new agent session as required by your Hermes version. The dashboard discovers the packaged API router. Desktop also needs the package's desktop half on the machine running the native app.
 
-- **Desktop Plugin SDK**: Uses `@hermes/plugin-sdk` (`host`, `useValue`, `ctx.rest`, `ctx.os.writeClipboard`). Requires Desktop app supporting plugin v0.1+ runtime.
-- **Backend**: Python 3.10+, FastAPI, stdlib only for the hook.
-- **Network**: Zero external calls; reads local session/last state files atomically.
+## Missing status-bar chip with a remote backend
+
+Backend installation and native Desktop installation are separate. An enabled backend plugin does not prove that the desktop component exists on the computer running the app. A remote-backend availability label is not, by itself, evidence of an API or SDK failure.
+
+Check the native app's Hermes home for `desktop-plugins/routed-model/plugin.js`. If it is missing, install the reviewed package on the desktop host too, or restore its `desktop/plugin.js` into that directory. Use the desktop host's actual Hermes home, not the remote server's home; the two can differ. Preserve and review an existing desktop copy before replacing it.
+
+The native app normally reconciles unified packages into its app-level `desktop-plugins/` folder. Hermes also added server-side reconciliation for Webapp/headless-host loading in [upstream PR #145853](https://github.com/NousResearch/hermes-agent/pull/145853). That server-side behavior does not establish that a different native desktop machine has the file installed.
+
+The app may hot-reload disk plugins; if it does not, reopen Hermes. In the plugin's settings page, verify the chip is enabled and inspect the captured-call readout. The chip intentionally hides when disabled or when no eligible capture is available. Verify the backend hook is recording the focused session before treating an empty chip as a rendering defect.
+
+## Tests
+
+```bash
+python -m unittest discover -s tests -v
+node --test tests/plugin.test.mjs
+```
+
+The Node tests import the actual packaged desktop module with SDK/React stubs and exercise contribution registration, settings persistence, captured-call readout, error reporting, and the disabled chip. They are behavioral unit tests, not proof that a native app loaded the plugin or that a live provider reported a served model.
+
+## Compatibility
+
+Uses `@hermes/plugin-sdk`, React, the SDK REST bridge, storage, settings contributions, and clipboard API. The backend uses Python 3.10+ and FastAPI; the hook uses the standard library. The plugin makes no external model requests itself.
 
 ## License
 
-MIT License.
-Copyright (c) 2026 Jacob Hodge / Hermes Agent.
+MIT License. Copyright (c) 2026 ErtzFiend.

@@ -13,6 +13,9 @@ python3 -m venv .venv
 echo "==> Running unit tests..."
 ./.venv/bin/python -m unittest discover -s tests -v
 
+echo "==> Running Node behavioral tests..."
+node --test tests/plugin.test.mjs
+
 echo "==> Building distribution archives..."
 mkdir -p dist
 rm -f dist/*.tar.gz dist/*.zip dist/SHA256SUMS
@@ -27,13 +30,13 @@ mkdir -p "$STAGE/$NAME"
     --exclude="./.git" --exclude="./.github" --exclude="__pycache__" --exclude="*.pyc" \
     -cf - .) | tar -xf - -C "$STAGE/$NAME"
 
-tar -czf "dist/$NAME-0.1.0.tar.gz" -C "$STAGE" "$NAME"
+tar -czf "dist/$NAME-0.2.0.tar.gz" -C "$STAGE" "$NAME"
 
 NAME="$NAME" STAGE="$STAGE" PLUGIN_DIR="$PLUGIN_DIR" python3 - <<'PYEOF'
 import os, zipfile
 name = os.environ["NAME"]
 stage = os.environ["STAGE"]
-out = os.path.join(os.environ["PLUGIN_DIR"], "dist", f"{name}-0.1.0.zip")
+out = os.path.join(os.environ["PLUGIN_DIR"], "dist", f"{name}-0.2.0.zip")
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
     for dirpath, dirnames, filenames in os.walk(os.path.join(stage, name)):
         for f in filenames:
@@ -44,12 +47,12 @@ PYEOF
 
 echo "==> Generating checksum manifest..."
 cd dist
-sha256sum routed-model-0.1.0.tar.gz routed-model-0.1.0.zip > SHA256SUMS
+sha256sum routed-model-0.2.0.tar.gz routed-model-0.2.0.zip > SHA256SUMS
 cat SHA256SUMS
 cd "$PLUGIN_DIR"
 
 echo "==> Verifying archive structure..."
-tar -tzf dist/routed-model-0.1.0.tar.gz
+tar -tzf dist/routed-model-0.2.0.tar.gz
 
 echo "==> Build complete in dist/"
 ls -lh dist/
